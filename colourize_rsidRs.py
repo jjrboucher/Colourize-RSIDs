@@ -1,5 +1,6 @@
 from docx import Document
 from docx.shared import RGBColor
+import json
 import logging
 import re
 from sys import exit
@@ -7,50 +8,12 @@ import tkinter as tk
 from tkinter import filedialog
 
 # ***** Declare variables *****
-color_options = {  # available colours. You can add more if you wish, but must use sequential integer for the key.
-    1: ['red1', RGBColor(255, 0, 0)],
-    2: ['orange1', RGBColor(255, 128, 0)],
-    3: ['yellow1', RGBColor(255, 255, 0)],
-    4: ['green2', RGBColor(128, 255, 0)],
-    5: ['green1', RGBColor(0, 255, 0)],
-    6: ['green3', RGBColor(0, 255, 128)],
-    7: ['green4', RGBColor(0, 128, 255)],
-    8: ['blue1', RGBColor(0, 255, 255)],
-    9: ['blue2', RGBColor(0, 128, 255)],
-    10: ['blue3', RGBColor(0, 0, 255)],
-    11: ['purple1', RGBColor(127, 0, 255)],
-    12: ['pink1', RGBColor(255, 0, 255)],
-    13: ['fuchsia1', RGBColor(255, 0, 127)],
-    14: ['grey1', RGBColor(128, 128, 128)],
-    15: ['brown1', RGBColor(102, 0, 0)],
-    16: ['brown2', RGBColor(102, 51, 0)],
-    17: ['yellow2', RGBColor(102, 102, 0)],
-    18: ['olive1', RGBColor(51, 102, 0)],
-    19: ['green5', RGBColor(0, 102, 0)],
-    20: ['green6', RGBColor(0, 102, 51)],
-    21: ['green7', RGBColor(0, 102, 102)],
-    22: ['blue4', RGBColor(0, 51, 102)],
-    23: ['blue5', RGBColor(0, 0, 102)],
-    24: ['purple2', RGBColor(51, 0, 102)],
-    25: ['purple3', RGBColor(102, 0, 102)],
-    26: ['pink2', RGBColor(102, 0, 51)],
-    27: ['red2', RGBColor(255, 102, 102)],
-    28: ['orange2', RGBColor(255, 178, 102)],
-    29: ['yellow3', RGBColor(255, 255, 102)],
-    30: ['olive2', RGBColor(178, 255, 102)],
-    31: ['green8', RGBColor(102, 255, 102)],
-    32: ['green9', RGBColor(102, 255, 178)],
-    33: ['blue6', RGBColor(102, 255, 255)],
-    34: ['blue7', RGBColor(102, 178, 255)],
-    35: ['blue8', RGBColor(102, 102, 255)],
-    36: ['purple4', RGBColor(178, 102, 255)],
-    37: ['fuchsia2', RGBColor(255, 102, 255)],
-    38: ['pink3', RGBColor(255, 102, 178)],
-    39: ['grey2', RGBColor(192, 192, 192)]
-}
+with open('colours.json') as colours:
+    colour_options = json.load(colours)
 
 
 def setup_logger(outputlog):
+    global logger
     # Create a logger
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
@@ -70,6 +33,7 @@ def setup_logger(outputlog):
 
 
 def color_code_by_rsid(docx_path, output_path, color_scheme):
+    global logger
     # Load the Word document
     doc = Document(docx_path)
 
@@ -113,6 +77,8 @@ def document_to_process():
 
 def list_of_rsidr(fpath):
     # prompts for the text file with rsidR values.
+    global logger
+
     rsidr_values = {}  # empty dictionary to add rsidR values in the text file as keys.
     excluded_rsidr_values = []  # empty list to contain rsidR values commented out.
     invalid_entries = []  # empty list to contain invalid entries in rsidR file.
@@ -167,8 +133,8 @@ def output_file(fpath):
 
 def apply_colour(rsids, excludedrsids):
     # This associates colours to RSID values
-    global color_options
-    colour_count = len(color_options.keys())  # determine how many colours are available
+    global colour_options, logger
+    colour_count = len(colour_options.keys())  # determine how many colours are available
     rsid_count = len(rsids.keys())
 
     if rsid_count > colour_count:
@@ -182,8 +148,10 @@ def apply_colour(rsids, excludedrsids):
 
     for rsid in rsids.keys():
         if r_count <= colour_count:
-            rsids[rsid] = color_options[r_count][1]  # assign a colour
-            logger.info(f'rsid {rsid} assigned colour {color_options[r_count][1]} ({color_options[r_count][0]})')
+            k = str(r_count)  # convert to string, as keys are strings in JSON file.
+            rsids[rsid] = RGBColor(colour_options[k][1][0], colour_options[k][1][1],
+                                   colour_options[k][1][2])  # assign a colour
+            logger.info(f'rsid {rsid} assigned colour {colour_options[k][1]} ({colour_options[k][0]})')
         r_count += 1
 
     return rsids, excludedrsids
