@@ -7,11 +7,8 @@ from sys import exit
 import tkinter as tk
 from tkinter import filedialog
 
+
 # ***** Declare variables *****
-with open('colours.json') as colours:
-    colour_options = json.load(colours)
-
-
 def setup_logger(outputlog):
     global logger
     # Create a logger
@@ -131,6 +128,24 @@ def output_file(fpath):
     return msword_output_file
 
 
+def colour_file(cpath):
+    # Prompts user to select the colour file in JSON format.
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+
+    cfile = filedialog.askopenfilename(title="Select colour file", initialdir=cpath,
+                                               filetypes=[("json File", "*.json")])  # ask for file to process
+    if not cfile:  # if no docx file selected
+        print(f'No colour file selected.')
+        wait = input(f'Press ENTER to exit application...')
+        exit()
+
+    with open('colours.json') as colours:
+        c_options = json.load(colours)
+
+    return cfile, c_options
+
+
 def apply_colour(rsids, excludedrsids):
     # This associates colours to RSID values
     global colour_options, logger
@@ -163,17 +178,20 @@ if __name__ == "__main__":
     file_path = input_document[0:input_document.rindex("/") + 1]  # extract the path from the selected file.
 
     output_document = output_file(file_path)  # prompt for an output file (open Explorer at path of input file)
+
     logger = setup_logger(output_document)
+    logger.info(f'Input file: {input_document}')
 
     rsidFile, rsidValues, excludedValues, invalidValues = list_of_rsidr(file_path)  # select rsidr text file.
+
+    colourFile, colour_options = colour_file(file_path)
 
     rsidValues, excludedValues = apply_colour(rsidValues, excludedValues)  # apply colour scheme to rsidR values
 
     color_code_by_rsid(input_document, output_document, rsidValues)  # colourize the document, saving to the output file
 
-    logger.info(f'rsidR file: {rsidFile}')
     logger.info(f'rsid values: {rsidValues}')
     logger.warning(f'rsid values excluded: {excludedValues}')
     logger.warning(f'Invalid values in rsid text file: {invalidValues}')
-    logger.info(f'Input file: {input_document}')
+    logger.info(f'Colour file: {colourFile}.')
     logger.info(f'Output file: {output_document}')
