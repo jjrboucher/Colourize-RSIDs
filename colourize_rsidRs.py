@@ -162,10 +162,10 @@ def apply_colour(rsids, excludedrsids):
     r_count = 1
 
     for rsid in rsids.keys():
-        if r_count <= colour_count:
+        if r_count in rsids:  # if a key exists for that #.
             k = str(r_count)  # convert to string, as keys are strings in JSON file.
             rsids[rsid] = RGBColor(colour_options[k][1][0], colour_options[k][1][1],
-                                   colour_options[k][1][2])  # assign a colour
+                                   colour_options[k][1][2])  # assign a colour to this RSID
             logger.info(f'rsid {rsid} assigned colour {colour_options[k][1]} ({colour_options[k][0]})')
         r_count += 1
 
