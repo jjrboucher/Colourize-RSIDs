@@ -7,7 +7,10 @@ This script will prompt you for the following:<br><br>
     Navigate to the RSID worksheet. Enable column filtering (format as a table in Excel, or via Data, Filter option).<br>
 	Filter on rsid type for rsidR only. Filter on count, excluding any with a count of 0. No need to try and colourize text for rsidR values that are not present in document.xml, since that means no text was entered in that session.<br>
 	Sort by the count column in descending order (so that the rsidR with the highest count is first).<br>
-	Copy the RSID values, and paste into a text file and save it. This becomes the rsidR text file that you point to at this step in the process.<br><br>
+	Copy the RSID values, and paste into a text file and save it. This becomes the rsidR text file that you point to at this step in the process.<br>
+	<h4>Commenting out RSIDs in the text file</h4>
+ 	You can put a pound sign "#" at the start of a line with an RSID to comment it out. This allows you to make more than one version of the file, each colourizing different text. This is also necessary if you have a large file with more than 30 RSID values in it.<br><br>
+ 
 4 - A JSON file containing colour options for text colours. The current file in this repository has 39 colours. You can edit them, delete some, change the order (via the numerical key), or add new ones.<br>
     See https://www.rapidtables.com/web/color/RGB_Color.html to get the numerical codes for the different colours.<br>
 	Make sure you do not skip any numbers. The script wil still work. But you may miss some of the colour options. If you have 30 rsidR values to apply a colour, and you enter 30 colours but skip #s 15 & 22 (meaning the last two colours will be 31 & 32), those last 
