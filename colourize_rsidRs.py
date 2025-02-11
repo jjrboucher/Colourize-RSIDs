@@ -1,5 +1,5 @@
-from docx import Document
-from docx.shared import RGBColor
+from docx import Document  # from python-docx
+from docx.shared import RGBColor  # from python-docx
 import json
 import logging
 import re
