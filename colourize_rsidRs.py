@@ -86,8 +86,8 @@ def list_of_rsidr(fpath):
     rsidr_file = filedialog.askopenfilename(title="Select text file containing list of rsidR values (one per line)",
                                             initialdir=fpath)  # ask for file to process
 
-    if not rsidr_file:  # if no docx file selected
-        print(f'No file selected.')
+    if not rsidr_file:  # if no rsidR file selected
+        print(f'No rsidR file selected.')
         wait = input(f'Press ENTER to exit application...')
         exit()
 
@@ -117,7 +117,7 @@ def output_file(fpath):
     msword_output_file = filedialog.asksaveasfilename(title="Output file (new file)", initialdir=fpath,
                                                       filetypes=[("DOCx File", "*.docx")])  # ask for file to process
 
-    if not msword_output_file:  # if no docx file selected
+    if not msword_output_file:  # if no output docx file selected
         print(f'No output file provided.')
         wait = input(f'Press ENTER to exit application...')
         exit()
@@ -135,7 +135,7 @@ def colour_file(cpath):
 
     cfile = filedialog.askopenfilename(title="Select colour file", initialdir=cpath,
                                                filetypes=[("json File", "*.json")])  # ask for file to process
-    if not cfile:  # if no docx file selected
+    if not cfile:  # if no JSON colour file selected
         print(f'No colour file selected.')
         wait = input(f'Press ENTER to exit application...')
         exit()
