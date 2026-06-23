@@ -1,35 +1,25 @@
 <h1>MS-Word - Colourize text based on rsidR values</h1>
-<h6>
-This script will prompt you for the following:<br><br>
-1 - A DOCx input file that you wish to process and colourize the text in it based on revisions.<br><br>
-2 - An output DOCx file (new file) which will be the colourized version of the input file.<br><br>
-3 - A text file that contains one rsidR value per line. You can easily create one by running the script to parse MS Word documents found here: https://github.com/jjrboucher/MS-Word-Parser<br>
-    Navigate to the RSID worksheet. Enable column filtering (format as a table in Excel, or via Data, Filter option).<br>
-	Filter on rsid type for rsidR only. Filter on count, excluding any with a count of 0. No need to try and colourize text for rsidR values that are not present in document.xml, since that means no text was entered in that session.<br>
-	Sort by the count column in descending order (so that the rsidR with the highest count is first).<br>
-	Copy the RSID values, and paste into a text file and save it. This becomes the rsidR text file that you point to at this step in the process.<br>
-	<h4>Commenting out RSIDs in the text file</h4>
- 	You can put a pound sign "#" at the start of a line with an RSID to comment it out. This allows you to make more than one version of the file, each colourizing different text. This is also necessary if you have a large file with more than 30 RSID values in it.<br><br>
- 
-4 - A JSON file containing colour options for text colours. The current file in this repository has 39 colours. You can edit them, delete some, change the order (via the numerical key), or add new ones.<br>
-    See https://www.rapidtables.com/web/color/RGB_Color.html to get the numerical codes for the different colours.<br>
-	Make sure you do not skip any numbers. The script wil still work. But you may miss some of the colour options. If you have 30 rsidR values to apply a colour, and you enter 30 colours but skip #s 15 & 22 (meaning the last two colours will be 31 & 32), those last 
-        two colours will be missed. The script loops over the RSID values in the RSID text file and increments a counter and looks for a colour option with that # in the colour file. Meaning it will never reach 31 (it will stop after looping through all 30 RSID values).<br>
-	<br>
-	The format must follow the same as you see in the included file. You must have a comma after each entry, and no comma after the last entry.<br>
-	The Python script reads this file and will colourize the text associated to the RSIDs in the order of colour in this JSON file (again, numerical order, not necessarily the order in the RSID text file).<br><br>
 
-<h2>Sample colour entries</h2>
-Here is an example of a few colour entries. You must follow this format, with no comma after the very last colour in your list.<br>
-	<br>"1": ["red1", [255, 0, 0]],
-	<br>"2": ["orange1", [255, 128, 0]],
-	<br>"3": ["yellow1", [255, 255, 0]],
-	<br>"4": ["green2", [128, 255, 0]],
+<h2>Overview</h2>
+This script allows you to select a MS Word document. The script will parse through it and identify all rsidR values it finds and display them in a window to the left of the menu. You can click on the associated square to select the colour you wish to assign to all text that was typed in that session.
+
+The rsidR values will be listed in decreasing order, with the one that appears the most often listed at the top of the list.
+
+<h2>Saving a colour version</h2>
+The script allows you to save a copy of the document with the colours applied to it. It will create a corresponding log file as well that lists the rsidR values that were coloured, and the RBG code for the colours that were used.
+
+You can clear the colours applied to the on screen document and colour other rsidR values and save that to yet another document. This allows you to create as many versions as you want, each with select rsidR values coloured according to your selection. In each case, a corresponding log file will be created.
+
+<h2>rsidR Report</h2>
+The script also provides you with the option to create a report which will contain each rsidR value and a corresponding table. The table will have three columns. The page number, the paragraph number, and the associated text. This can be useful to produce first to identify text of interest and see the associated rsidR values. You can apply colour to those rsidR values rather than trial and error trying to find which rsidR value corresponds to some text of interest within the document.
 
 <h2>Logging</h2>
 The script will create a .log file in addition to the colourized file. The .log file will bear the same name as the output file you give the script, with .log as an extension.
 
 <h2>Dependencies</h2>
+
+python-docx>=1.1.0
+pywin32>=306
 
 <h6>If running the script on a Linux system, you may need to install python-tk. You can do this with the following
 command on a Debian (e.g. Ubuntu) system from the terminal window:<br>  
