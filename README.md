@@ -1,5 +1,8 @@
 <h1>MS-Word - Colourize text based on rsidR values</h1>
 
+<h2>VALIDATE YOUR FINDINGS</h2>
+This script should be used to assist you with the task of identifying text within a given rsidR session. But you should verify any findings you plan to use by examining the XML code to ensure the script correctly attributed an rsidR value to a given block of text.
+
 <h2>Overview</h2>
 This script allows you to select a MS Word document. The script will parse through it and identify all rsidR values it finds and display them in a window to the left of the menu. You can click on the associated square to select the colour you wish to assign to all text that was typed in that session.
 
