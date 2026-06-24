@@ -21,7 +21,7 @@ except ImportError:
     win32com = None
 
 APP_NAME = 'Word rsidR Colorizer'
-APP_VERSION = '1.2'
+APP_VERSION = '1.3'
 
 # ---------------------------------------------------------------------------
 # Logger
@@ -322,7 +322,7 @@ class RsidRow(tk.Frame):
 class WordRsidColorizer:
     def __init__(self, root):
         self.root = root
-        self.root.title(APP_NAME)
+        self.root.title(f'{APP_NAME}  v{APP_VERSION}')
         self.root.geometry('1280x820')
         self.root.minsize(900, 600)
         self.root.configure(bg=C['app_bg'])
@@ -331,6 +331,10 @@ class WordRsidColorizer:
         self.last_save_path = None
         self.rsid_colors = {}
         self.rsid_rows = {}
+        self.rsid_dividers = {}          # divider frames keyed by rsid, for filter show/hide
+        self.rsid_order = []             # rsid values in display order, for filter re-pack
+        self.filter_var = None           # StringVar for the filter entry
+        self.filter_clear_btn = None     # '×' label shown when filter is non-empty
         self.rsid_counts = {}            
         self.document_xml = None
         self.document_tree = None
@@ -464,14 +468,13 @@ class WordRsidColorizer:
                 for para in root.findall('.//w:p', self.namespaces):
                     para_num += 1
                     para_rsid = para.get(f'{{{w_ns}}}rsidR')
-                    para_rsid_p = para.get(f'{{{w_ns}}}rsidP')
-                    
+
                     match_found = False
                     para_text_parts = []
                     
                     for run in para.findall('.//w:r', self.namespaces):
                         run_rsid = run.get(f'{{{w_ns}}}rsidR')
-                        effective_rsid = run_rsid or para_rsid or para_rsid_p
+                        effective_rsid = run_rsid or para_rsid
                         
                         if effective_rsid == rsid:
                             match_found = True
@@ -486,7 +489,7 @@ class WordRsidColorizer:
                             if parts:
                                 para_text_parts.append(''.join(parts))
                                 
-                    if not match_found and (para_rsid == rsid or para_rsid_p == rsid):
+                    if not match_found and para_rsid == rsid:
                         full_parts = []
                         for run in para.findall('.//w:r', self.namespaces):
                             for t in run.findall('./w:t', self.namespaces):
@@ -577,6 +580,38 @@ class WordRsidColorizer:
         SidebarButton(hdr, text='Clear All', command=self.clear_all_colors, padx=8, pady=3,
                       font=('Segoe UI', 8)).pack(side=tk.RIGHT, padx=8, pady=6)
 
+        # ── Filter bar ────────────────────────────────────────────────────────
+        filter_bar = tk.Frame(sidebar, bg=C['sidebar_bg'])
+        filter_bar.pack(fill=tk.X, padx=8, pady=(6, 0))
+
+        tk.Label(filter_bar, text='Filter:',
+                 font=('Segoe UI', 8), bg=C['sidebar_bg'],
+                 fg=C['text_muted']).pack(side=tk.LEFT, padx=(0, 4))
+
+        self.filter_var = tk.StringVar()
+        self.filter_var.trace_add('write', lambda *_: self._apply_filter())
+
+        # Bordered frame that visually wraps the entry + clear button together
+        filter_entry_frame = tk.Frame(filter_bar, bg='#FFFFFF',
+                                      highlightbackground=C['sidebar_border'],
+                                      highlightthickness=1)
+        filter_entry_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        filter_entry = tk.Entry(
+            filter_entry_frame, textvariable=self.filter_var,
+            font=('Consolas', 9), bg='#FFFFFF', fg=C['row_fg'],
+            relief=tk.FLAT, bd=0, insertbackground=C['row_fg'])
+        filter_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0), ipady=4)
+
+        self.filter_clear_btn = tk.Label(
+            filter_entry_frame, text='×',
+            font=('Segoe UI', 10, 'bold'), bg='#FFFFFF',
+            fg=C['text_muted'], cursor='hand2', padx=5)
+        self.filter_clear_btn.bind('<Button-1>', lambda e: self._clear_filter())
+        # Revealed by _apply_filter once the entry is non-empty
+
+        tk.Frame(sidebar, bg=C['sidebar_border'], height=1).pack(fill=tk.X, pady=(6, 0))
+
         scroll_wrapper = tk.Frame(sidebar, bg=C['sidebar_bg'])
         scroll_wrapper.pack(fill=tk.BOTH, expand=True)
 
@@ -655,7 +690,7 @@ class WordRsidColorizer:
             self.rsid_colors.clear()
             filename = os.path.basename(self.current_file)
             self.file_label.config(text=f'  {filename}')
-            self.root.title(f'{APP_NAME}  –  {filename}')
+            self.root.title(f'{APP_NAME}  v{APP_VERSION}  –  {filename}')
             self.load_document()
 
     def load_document(self):
@@ -746,7 +781,7 @@ class WordRsidColorizer:
                     val = rsid_root.get(f'{{{self.namespaces["w"]}}}val')
                     if val:
                         rsid_values.add(val)
-                for tag in ('w:rsid', 'w:rsidR', 'w:rsidRPr', 'w:rsidDel', 'w:rsidP'):
+                for tag in ('w:rsid', 'w:rsidR'):
                     for elem in rsids_elem.findall(f'./{tag}', self.namespaces):
                         val = elem.get(f'{{{self.namespaces["w"]}}}val')
                         if val:
@@ -778,7 +813,7 @@ class WordRsidColorizer:
             root = self.document_tree.getroot()
             w = self.namespaces['w']
             for elem in root.iter():
-                for attr in (f'{{{w}}}rsidR', f'{{{w}}}rsidP', f'{{{w}}}rsidRPr', f'{{{w}}}rsidDel'):
+                for attr in (f'{{{w}}}rsidR',):
                     val = elem.get(attr)
                     if val and val in counts:
                         counts[val] += 1
@@ -790,6 +825,8 @@ class WordRsidColorizer:
         for w in self.scrollable_frame.winfo_children():
             w.destroy()
         self.rsid_rows.clear()
+        self.rsid_dividers.clear()
+        self.rsid_order.clear()
         self.sidebar_placeholder = None
 
         counts = self.rsid_counts
@@ -805,12 +842,52 @@ class WordRsidColorizer:
             row = RsidRow(self.scrollable_frame, rsid, count,
                           on_pick=self.select_color, on_reset=self.reset_color, row_index=idx)
             row.pack(fill=tk.X)
-            tk.Frame(self.scrollable_frame, bg=C['row_border'], height=1).pack(fill=tk.X)
+            div = tk.Frame(self.scrollable_frame, bg=C['row_border'], height=1)
+            div.pack(fill=tk.X)
             self.rsid_rows[rsid] = row
+            self.rsid_dividers[rsid] = div
+            self.rsid_order.append(rsid)
             self._bind_mousewheel_recursive(row)
 
         self.scrollable_frame.update_idletasks()
         self.canvas.configure(scrollregion=self.canvas.bbox('all'))
+        self._apply_filter()
+
+    def _apply_filter(self):
+        if not self.filter_var or not self.rsid_order:
+            return
+        query = self.filter_var.get().strip().upper()
+
+        # Show or hide the × button depending on whether there is text to clear
+        if query:
+            self.filter_clear_btn.pack(side=tk.RIGHT)
+        else:
+            self.filter_clear_btn.pack_forget()
+
+        # Unpack every row and divider so we can re-pack only the matches in order
+        for rsid in self.rsid_order:
+            row = self.rsid_rows.get(rsid)
+            div = self.rsid_dividers.get(rsid)
+            if row:
+                row.pack_forget()
+            if div:
+                div.pack_forget()
+
+        for rsid in self.rsid_order:
+            if not query or query in rsid.upper():
+                row = self.rsid_rows.get(rsid)
+                div = self.rsid_dividers.get(rsid)
+                if row:
+                    row.pack(fill=tk.X)
+                if div:
+                    div.pack(fill=tk.X)
+
+        self.scrollable_frame.update_idletasks()
+        self.canvas.configure(scrollregion=self.canvas.bbox('all'))
+
+    def _clear_filter(self):
+        if self.filter_var:
+            self.filter_var.set('')
 
     def select_color(self, rsid):
         color = colorchooser.askcolor(title=f'Choose colour for rsid {rsid}')
@@ -862,11 +939,10 @@ class WordRsidColorizer:
             w = self.namespaces['w']
             for para in root.findall('.//w:p', self.namespaces):
                 para_rsid = para.get(f'{{{w}}}rsidR')
-                para_rsid_p = para.get(f'{{{w}}}rsidP')
                 para_text = []
                 for run in para.findall('.//w:r', self.namespaces):
                     run_rsid = run.get(f'{{{w}}}rsidR')
-                    effective = run_rsid or para_rsid or para_rsid_p
+                    effective = run_rsid or para_rsid
                     parts = []
                     for t in run.findall('./w:t', self.namespaces):
                         if t.text:
@@ -880,8 +956,8 @@ class WordRsidColorizer:
                 if para_text:
                     text_content.extend(para_text)
                     text_content.append(('\n\n', None))
-                elif para_rsid or para_rsid_p:
-                    text_content.append(('\n', para_rsid or para_rsid_p))
+                elif para_rsid:
+                    text_content.append(('\n', para_rsid))
         except Exception as exc:
             logger.exception('Error extracting text with rsid')
         return text_content
@@ -904,25 +980,6 @@ class WordRsidColorizer:
 
         xml = re.sub(r'<w:r[ >].*?</w:r>', replace_run, xml, flags=re.DOTALL)
 
-        def replace_para(m):
-            para_xml = m.group(0)
-            pm = re.search(r'w:rsidP="([^"]+)"', para_xml)
-            if not pm or pm.group(1) not in color_map:
-                return para_xml
-            hex_color = color_map[pm.group(1)]
-
-            def replace_run_in_para(rm2):
-                rx = rm2.group(0)
-                rr = re.search(r'w:rsidR="([^"]+)"', rx)
-                if rr and rr.group(1) in color_map:
-                    return rx
-                if re.search(r'<w:color\b', rx):
-                    return rx
-                return _inject_color_into_run_xml(rx, hex_color)
-
-            return re.sub(r'<w:r[ >].*?</w:r>', replace_run_in_para, para_xml, flags=re.DOTALL)
-
-        xml = re.sub(r'<w:p[ >].*?</w:p>', replace_para, xml, flags=re.DOTALL)
         logger.info('document.xml modified successfully')
         return xml.encode('utf-8')
 
