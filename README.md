@@ -1,46 +1,70 @@
-<h1>MS-Word - Colourize text based on rsidR values</h1>
+# MS Word - Colourize text based on rsidR values
 
-<h2>VALIDATE YOUR FINDINGS</h2>
-This script should be used to assist you with the task of identifying text within a given rsidR session. But you should verify any findings you plan to use by examining the XML code to ensure the script correctly attributed an rsidR value to a given block of text.
+**Version 1.4**
 
-<h2>Overview</h2>
-This script allows you to select a MS Word document. The script will parse through it and identify all rsidR values it finds and display them in a window to the left of the menu. You can click on the associated square to select the colour you wish to assign to all text that was typed in that session.
+## VALIDATE YOUR FINDINGS
 
-The rsidR values will be listed in decreasing order, with the one that appears the most often listed at the top of the list.
+This application assists with identifying visible text associated with Microsoft Word `w:rsidR` revision-save identifiers. Always validate findings you intend to rely on by examining the underlying OOXML, especially `word/document.xml`. RSID analysis is corroborative and should not be treated as conclusive authorship attribution.
 
-<h2>Saving a colour version</h2>
-The script allows you to save a copy of the document with the colours applied to it. It will create a corresponding log file as well that lists the rsidR values that were coloured, and the RBG code for the colours that were used.
+## Overview
 
-You can clear the colours applied to the on screen document and colour other rsidR values and save that to yet another document. This allows you to create as many versions as you want, each with select rsidR values coloured according to your selection. In each case, a corresponding log file will be created.
+Open a `.docx` file and the application identifies active `rsidR` values, lists them in the left pane, and shows their occurrence counts in descending order. Select the colour swatch or rsidR label to assign a colour. The document preview updates immediately.
 
-<h2>rsidR Report</h2>
-The script also provides you with the option to create a report which will contain each rsidR value and a corresponding table. The table will have three columns. The page number, the paragraph number, and the associated text. This can be useful to produce first to identify text of interest and see the associated rsidR values. You can apply colour to those rsidR values rather than trial and error trying to find which rsidR value corresponds to some text of interest within the document.
+The application uses an **effective rsidR** rule for visible text: a run's own `w:rsidR` takes precedence; if the run does not carry one, the containing paragraph's `w:rsidR` is used. Version 1.4 applies this same rule to both the preview/report and saved colourized document.
 
-<h2>Logging</h2>
-The script will create a .log file in addition to the colourized file. The .log file will bear the same name as the output file you give the script, with .log as an extension.
+## rsidR pane, scrolling, and filtering
 
-<h2>Dependencies</h2>
+The rsidR pane includes a persistent vertical scrollbar. Use the scrollbar or mouse wheel to move through all active values. The filter box can also locate a specific rsidR value; filtering does not remove or change colour assignments.
 
-python-docx>=1.1.0
-pywin32>=306
+## Saving a colourized version
 
-<h6>If running the script on a Linux system, you may need to install python-tk. You can do this with the following
-command on a Debian (e.g. Ubuntu) system from the terminal window:<br>  
-    
-    sudo apt-get install python3-tk
-<br>
-Whether running on Linux, Mac, or Windows, you may need to install some of the libraries if they are not included in
-your installation of Python 3.11.
-<br>
-In particular, you may need to install docx==0.2.4.  
-    
-<br>You can do so as follows from a terminal window while in the folder with the script and requirements.txt file:
+Use **Save** or **Save As...** to create a colourized copy. Version 1.4 corrects an issue in v1.3 where text inheriting its rsidR from the containing paragraph could appear coloured in the preview/report but fail to receive that colour in the saved DOCX.
 
-    pip3 install -r requirements.txt
-<hr>
-If any other libraries are missing when trying to execute the script, install those in the same manner.</h6>
+A corresponding colourization log is created. It records source/output hashes, original metadata, assigned rsidR values, and the associated hex/RGB colours.
 
-<h2>Executable Version</h2>
-If you'd rather run the executable rather than needing Python, grab the .exe file.<br>
-<br>
+## rsidR Report
 
+Use **Generate Report** to create a Word report mapping each active rsidR value to page number, paragraph number, and extracted text segments. Page-number resolution uses Microsoft Word automation through `pywin32`; when Word automation is unavailable, page numbers may not be populated.
+
+The recommended workflow is:
+
+1. Open the original document.
+2. Generate and review the RSID report.
+3. Filter for rsidR values of interest.
+4. Assign colours.
+5. Save a colourized copy.
+6. Validate important findings against `word/document.xml`.
+
+## Logging
+
+Opening a document creates an examination log. Saving a colourized copy creates a colourization log. Retain these logs with the analytical work product where reproducibility is required.
+
+## Dependencies
+
+- Python 3.11 or later
+- `python-docx>=1.1.0`
+- `pywin32>=306` on Windows for Microsoft Word page-number automation
+- Tk/Tkinter for the graphical interface
+
+Install Python dependencies with:
+
+```text
+pip install -r requirements.txt
+```
+
+On Debian/Ubuntu, Tkinter may need to be installed separately:
+
+```text
+sudo apt-get install python3-tk
+```
+
+## Version 1.4 changes
+
+- Fixed saved colourization for runs that inherit `w:rsidR` from their containing paragraph.
+- Made save-time rsidR resolution consistent with the preview and RSID report.
+- Corrected the rsidR pane layout so the vertical scrollbar remains visible beside the expanding canvas.
+- Documentation updated to describe effective rsidR handling and scrolling.
+
+## Executable version
+
+If a packaged `.exe` is provided, it can be used instead of running the Python script directly.

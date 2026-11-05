@@ -21,7 +21,7 @@ except ImportError:
     win32com = None
 
 APP_NAME = 'Word rsidR Colorizer'
-APP_VERSION = '1.3'
+APP_VERSION = '1.4'
 
 # ---------------------------------------------------------------------------
 # Logger
@@ -616,15 +616,16 @@ class WordRsidColorizer:
         scroll_wrapper.pack(fill=tk.BOTH, expand=True)
 
         self.canvas = tk.Canvas(scroll_wrapper, bg=C['sidebar_bg'], highlightthickness=0)
-        vsb = ttk.Scrollbar(scroll_wrapper, orient='vertical', command=self.canvas.yview)
+        # Pack the scrollbar before the expanding canvas so it remains visible.
+        self.rsid_scrollbar = ttk.Scrollbar(scroll_wrapper, orient='vertical', command=self.canvas.yview)
         self.scrollable_frame = tk.Frame(self.canvas, bg=C['sidebar_bg'])
 
         self.scrollable_frame.bind('<Configure>', lambda e: self.canvas.configure(scrollregion=self.canvas.bbox('all')))
         self.canvas_window = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor='nw')
-        self.canvas.configure(yscrollcommand=vsb.set)
+        self.canvas.configure(yscrollcommand=self.rsid_scrollbar.set)
 
-        self.canvas.pack(side='left', fill='both', expand=True)
-        vsb.pack(side='right', fill='y')
+        self.rsid_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.canvas.bind('<MouseWheel>', self._on_mousewheel)
         self.canvas.bind('<Button-4>', self._on_mousewheel)
@@ -971,16 +972,36 @@ class WordRsidColorizer:
         color_map = {rsid: color.lstrip('#').upper() for rsid, color in self.rsid_colors.items()}
         xml = self.document_xml
 
-        def replace_run(m):
-            run_xml = m.group(0)
-            rm = re.search(r'w:rsidR="([^"]+)"', run_xml)
-            if not rm or rm.group(1) not in color_map:
-                return run_xml
-            return _inject_color_into_run_xml(run_xml, color_map[rm.group(1)])
+        # Use the same effective-rsidR rule as the preview and report: a run's
+        # explicit w:rsidR takes precedence; otherwise it inherits w:rsidR from
+        # its containing paragraph. Version 1.3 only coloured explicit run rsidR
+        # values during save, which caused some preview colours to disappear.
+        def replace_paragraph(pm):
+            para_xml = pm.group(0)
+            start_tag = re.match(r'<w:p(?:\s[^>]*)?>', para_xml, flags=re.DOTALL)
+            para_rsid = None
+            if start_tag:
+                m = re.search(r'w:rsidR="([^"]+)"', start_tag.group(0))
+                if m:
+                    para_rsid = m.group(1)
 
-        xml = re.sub(r'<w:r[ >].*?</w:r>', replace_run, xml, flags=re.DOTALL)
+            def replace_run(rm):
+                run_xml = rm.group(0)
+                run_start = re.match(r'<w:r(?:\s[^>]*)?>', run_xml, flags=re.DOTALL)
+                run_rsid = None
+                if run_start:
+                    m = re.search(r'w:rsidR="([^"]+)"', run_start.group(0))
+                    if m:
+                        run_rsid = m.group(1)
+                effective_rsid = run_rsid or para_rsid
+                if effective_rsid not in color_map:
+                    return run_xml
+                return _inject_color_into_run_xml(run_xml, color_map[effective_rsid])
 
-        logger.info('document.xml modified successfully')
+            return re.sub(r'<w:r(?:\s[^>]*)?>.*?</w:r>', replace_run, para_xml, flags=re.DOTALL)
+
+        xml = re.sub(r'<w:p(?:\s[^>]*)?>.*?</w:p>', replace_paragraph, xml, flags=re.DOTALL)
+        logger.info('document.xml modified successfully using effective run/paragraph rsidR values')
         return xml.encode('utf-8')
 
     def _common_log_header(self, log_type):
